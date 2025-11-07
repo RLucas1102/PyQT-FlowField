@@ -17,14 +17,15 @@ class ParticleWindow(QMainWindow):
         # Share Numpy arrays for efficiency: xcoords, xycoords
         self.npImgCont = np.zeros((self.dim, self.dim), dtype=np.float32)
 
-        self.v = 1
+        self.v = np.array([[1, 0, 1],
+                           [0, 1, 0],
+                           [0, 0, 1]])
 
-        self.x = 256
-        self.y = 256
+        self.p = np.array([[256, 256, 1]])
+        
+        self.p = self.p.T
 
-        self.p = np.array([[self.x],[self.y]])
-
-        self.npImgCont[self.p[0], self.p[1]] = 1
+        self.npImgCont[self.p[0,0], self.p[1,0]] = 1
 
         # Set window title and size
         self.setWindowTitle("Particle System")
@@ -48,17 +49,15 @@ class ParticleWindow(QMainWindow):
 
     def update(self):
 
-        if self.x >= 511:
-            self.x = 0
-
         # start fresh instead of modifying already drawn image
         self.npImgCont[:, :] = 0 
 
-        self.x += self.v
+        if self.p[0, 0] >= 511:
+            self.p[0, 0] = 0
 
-        self.p = np.array([[self.x], [self.y]])
+        self.p = self.v @ self.p
 
-        self.npImgCont[self.p[1], self.p[0]] = 1
+        self.npImgCont[self.p[1,0], self.p[0,0]] = 1
 
         # Update pixmap by converting range, to QImage, and setting imageLabel
         fImageData = (self.npImgCont * 255).astype(np.uint8)
