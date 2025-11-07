@@ -11,15 +11,39 @@ class ParticleWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.windowW = 200
-        self.windowH = 200
+        # Default dimension for square images
+        self.dim = 512
 
+        # Share Numpy arrays for efficiency: xcoords, xycoords
+        self.npImgCont = np.ones((self.dim, self.dim), dtype=np.float32)
+        # Linearly divide range between 0 and 1 to make np array
+        self.xcoords = np.linspace(0, 1, self.dim)
+        # Make similar structure in 2D similar to UV coords
+        x, y = np.meshgrid(self.xcoords, self.xcoords)
+        self.xycoords = np.dstack((x, y))
+
+        # Set window title and size
         self.setWindowTitle("Particle System")
-        self.resize(self.windowW, self.windowH)
+        self.resize(self.dim, self.dim)
 
+        # Image display label
         self.imageLabel = QLabel()
         self.imageLabel.setMinimumSize(1, 1)
         self.setCentralWidget(self.imageLabel)
+
+        # start fresh instead of modifying already drawn image
+        self.npImgCont[:, :] = 1 
+
+        # y = x
+        y = self.xcoords
+
+        # Update npImgCont by broadcasting fcn output (y) over all of the rows of npImgCont (which should be 1s)
+        np.multiply(self.npImgCont, y, out=self.npImgCont)
+
+        # Update pixmap by converting range, to QImage, and setting imageLabel
+        fImageData = (self.npImgCont * 255).astype(np.uint8)
+        self.pixmap = QPixmap.fromImage(QImage(fImageData.astype(np.uint8).data, fImageData.shape[1], fImageData.shape[0], QImage.Format_Grayscale8))
+        self.imageLabel.setPixmap(self.pixmap.scaled(self.width(), self.height(), Qt.KeepAspectRatio))
 
 app = QApplication()
 
