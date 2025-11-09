@@ -17,15 +17,18 @@ class ParticleWindow(QMainWindow):
         # Share Numpy arrays for efficiency: xcoords, xycoords
         self.npImgCont = np.zeros((self.dim, self.dim), dtype=np.float32)
 
-        self.v = np.array([[1, 0, 1],
-                           [0, 1, 0],
-                           [0, 0, 1]])
+        # Create random particle positions
+        num_particles = 200
 
-        self.p = np.array([[256, 256, 1]])
+        positions = np.random.rand(num_particles, 2)
+
+        np.multiply(positions, self.dim/2, out=positions)
+
+        np.add(positions, self.dim/4, out=positions)
+
+        positions = positions.astype(int)
+
         
-        self.p = self.p.T
-
-        self.npImgCont[self.p[0,0], self.p[1,0]] = 1
 
         # Set window title and size
         self.setWindowTitle("Particle System")
@@ -35,6 +38,8 @@ class ParticleWindow(QMainWindow):
         self.imageLabel = QLabel()
         self.imageLabel.setMinimumSize(1, 1)
         self.setCentralWidget(self.imageLabel)
+
+        np.add.at(self.npImgCont, (positions[:, 0], positions[:, 1]), 1)
 
         # Update pixmap by converting range, to QImage, and setting imageLabel
         fImageData = (self.npImgCont * 255).astype(np.uint8)
@@ -48,21 +53,7 @@ class ParticleWindow(QMainWindow):
         self.timer.start(10)
 
     def update(self):
-
-        # start fresh instead of modifying already drawn image
-        self.npImgCont[:, :] = 0 
-
-        if self.p[0, 0] >= 511:
-            self.p[0, 0] = 0
-
-        self.p = self.v @ self.p
-
-        self.npImgCont[self.p[1,0], self.p[0,0]] = 1
-
-        # Update pixmap by converting range, to QImage, and setting imageLabel
-        fImageData = (self.npImgCont * 255).astype(np.uint8)
-        self.pixmap = QPixmap.fromImage(QImage(fImageData.astype(np.uint8).data, fImageData.shape[1], fImageData.shape[0], QImage.Format_Grayscale8))
-        self.imageLabel.setPixmap(self.pixmap.scaled(self.width(), self.height(), Qt.KeepAspectRatio))
+        pass
 
 
 
