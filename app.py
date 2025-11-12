@@ -64,14 +64,6 @@ class ParticleWindow(QMainWindow):
         self.imageLabel.setMinimumSize(1, 1)
         self.setCentralWidget(self.imageLabel)
 
-        # For each particle position, access that position in the image and set the value to 1
-        np.add.at(self.npImgCont, (self.positions_out[:, 0].astype(np.int32), self.positions_out[:, 1].astype(np.int32)), 1)
-
-        # Update pixmap by converting range, to QImage, and setting imageLabel
-        fImageData = (self.npImgCont * 255).astype(np.uint8)
-        self.pixmap = QPixmap.fromImage(QImage(fImageData.astype(np.uint8).data, fImageData.shape[1], fImageData.shape[0], QImage.Format_Grayscale8))
-        self.imageLabel.setPixmap(self.pixmap.scaled(self.width(), self.height(), Qt.KeepAspectRatio))
-
         # Create timer for constant updates
         self.dt = 1000/60
 
@@ -95,8 +87,14 @@ class ParticleWindow(QMainWindow):
         # Clamp positions within image space
         # self.positions_out = np.minimum(511, np.maximum(0, self.positions_out))
 
+        xi = np.zeros(self.positions_out.shape[0], dtype=np.int32)
+        yi = np.zeros(self.positions_out.shape[0], dtype=np.int32)
+
+        xi[:] = np.floor(self.positions_out[:, 0])
+        yi[:] = np.floor(self.positions_out[:, 1])
+
         # For each particle position, access that position in the image and set the value to 1
-        np.add.at(self.npImgCont, (self.positions_out[:, 0].astype(np.int32), self.positions_out[:, 1].astype(np.int32)), 1)
+        np.add.at(self.npImgCont, (xi, yi), 1)
 
         # Update pixmap by converting range, to QImage, and setting imageLabel
         fImageData = (self.npImgCont * 255).astype(np.uint8)
