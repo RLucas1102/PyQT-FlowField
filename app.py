@@ -3,13 +3,16 @@ import cv2
 import numpy as np
 import noise
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QMenuBar, QMenu, QFileDialog, QVBoxLayout, QComboBox, QWidget, QSlider 
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QMenuBar, QMenu, QFileDialog, QVBoxLayout, QComboBox, QWidget, QSlider, QVBoxLayout 
 from PySide6.QtGui import QPixmap, QImage, QColor, QAction
 from PySide6.QtCore import Qt, Signal, QTimer
 
 class ParticleWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        # Member variables
+        self.noiseMult = 0
 
         # Default dimension for square images
         self.dim = 512
@@ -24,24 +27,24 @@ class ParticleWindow(QMainWindow):
         # Create array of random particle positions
         positions = np.random.rand(num_particles, 2)
 
-        # Keep in range 256, 256
-        np.multiply(positions, self.dim/2, out=positions)
+        # Keep in range 512, 512
+        np.multiply(positions, self.dim, out=positions)
 
         # Move particle cloud to center
-        np.add(positions, self.dim/4, out=positions)
+        # np.add(positions, self.dim/4, out=positions)
 
         # Truncate positions to whole numbers
         self.positions_out = positions
 
         # Create random vectors
         # ---------------------
-        # Create a set to randomly choose a value from
-        choices = np.array([-1, 0, 1])
-
-        # Choose x and y values separately
-        vectorx = np.random.choice(choices, num_particles)
-
-        vectory = np.random.choice(choices, num_particles)
+        vectorx = np.ones(num_particles)
+        vectory = np.ones(num_particles)
+        
+        vectorx *= np.minimum(0.5 + np.vectorize(noise.pnoise1)(self.positions_out[:, 0], 4), 1)
+        
+        vectory *= np.minimum(0.5 + np.vectorize(noise.pnoise1)(self.positions_out[:, 1], 4), 1)
+        
 
         # Create coordinate pairs by concatenating the vectors laterally
         vectors = np.dstack((vectorx, vectory))
@@ -55,14 +58,55 @@ class ParticleWindow(QMainWindow):
         # Remove vectors from 3D
         self.vectors_out = vectors[0]
 
+        # Initialize GUI
+        self.initGUI()
+
+
+    def initGUI(self):
+        
+        # Window properties
+        # --------------------------------------
+        
         # Set window title and size
         self.setWindowTitle("Particle System")
         self.resize(self.dim, self.dim)
 
+        # Layouts
+        # --------------------------------------
+        mainLayout = QVBoxLayout()
+
+        # Labels
+        # --------------------------------------
+
         # Image display label
         self.imageLabel = QLabel()
         self.imageLabel.setMinimumSize(1, 1)
-        self.setCentralWidget(self.imageLabel)
+
+        # Noise multipler label
+        multLabel = QLabel()
+        multLabel.setText("Noise Multiplier:")
+
+        # Sliders
+        # --------------------------------------
+
+        # Noise multiplier slider
+        self.multSlider = QSlider(Qt.Horizontal)
+        self.multSlider.setRange(0, 100)
+        self.multSlider.setValue(0.0)
+        self.multSlider.valueChanged.connect(self.GetNoiseMult)
+
+        # Build GUI
+        # --------------------------------------
+        mainLayout.addWidget(self.imageLabel)
+        mainLayout.addWidget(multLabel)
+        mainLayout.addWidget(self.multSlider)
+
+        dummy = QWidget()
+        dummy.setLayout(mainLayout)
+        self.setCentralWidget(dummy)
+
+        # Timer
+        # --------------------------------------
 
         # Create timer for constant updates
         self.dt = 1000/60
@@ -72,6 +116,9 @@ class ParticleWindow(QMainWindow):
         self.timer.timeout.connect(self.update)
 
         self.timer.start(self.dt)
+        
+    def GetNoiseMult(self):
+        self.noiseMult = self.multSlider.value()
 
     def update(self):
 
@@ -79,7 +126,8 @@ class ParticleWindow(QMainWindow):
         self.npImgCont[:, :] = 0
 
         # Add vector to position
-        self.positions_out += self.vectors_out
+        self.positions_out[:, 0] += self.vectors_out[:, 0] * self.noiseMult
+        self.positions_out[:, 1] += self.vectors_out[:, 1] * self.noiseMult
 
         self.positions_out[:, 0] %= self.dim
         self.positions_out[:, 1] %= self.dim
