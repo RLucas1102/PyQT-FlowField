@@ -31,11 +31,10 @@ class ParticleWindow(QMainWindow):
         np.add(positions, self.dim/4, out=positions)
 
         # Truncate positions to whole numbers
-        self.positions_out = positions.astype(int)
+        self.positions_out = positions
 
         # Create random vectors
         # ---------------------
-
         # Create a set to randomly choose a value from
         choices = np.array([-1, 0, 1])
 
@@ -66,7 +65,7 @@ class ParticleWindow(QMainWindow):
         self.setCentralWidget(self.imageLabel)
 
         # For each particle position, access that position in the image and set the value to 1
-        np.add.at(self.npImgCont, (self.positions_out[:, 0], self.positions_out[:, 1]), 1)
+        np.add.at(self.npImgCont, (self.positions_out[:, 0].astype(np.int32), self.positions_out[:, 1].astype(np.int32)), 1)
 
         # Update pixmap by converting range, to QImage, and setting imageLabel
         fImageData = (self.npImgCont * 255).astype(np.uint8)
@@ -74,11 +73,13 @@ class ParticleWindow(QMainWindow):
         self.imageLabel.setPixmap(self.pixmap.scaled(self.width(), self.height(), Qt.KeepAspectRatio))
 
         # Create timer for constant updates
+        self.dt = 1000/60
+
         self.timer = QTimer(self)
 
         self.timer.timeout.connect(self.update)
 
-        self.timer.start(10)
+        self.timer.start(self.dt)
 
     def update(self):
 
@@ -86,13 +87,16 @@ class ParticleWindow(QMainWindow):
         self.npImgCont[:, :] = 0
 
         # Add vector to position
-        np.add(self.positions_out, self.vectors_out, out=self.positions_out)
+        self.positions_out += self.vectors_out
+
+        self.positions_out[:, 0] %= self.dim
+        self.positions_out[:, 1] %= self.dim
 
         # Clamp positions within image space
-        self.positions_out = np.minimum(511, np.maximum(0, self.positions_out))
+        # self.positions_out = np.minimum(511, np.maximum(0, self.positions_out))
 
         # For each particle position, access that position in the image and set the value to 1
-        np.add.at(self.npImgCont, (self.positions_out[:, 0], self.positions_out[:, 1]), 1)
+        np.add.at(self.npImgCont, (self.positions_out[:, 0].astype(np.int32), self.positions_out[:, 1].astype(np.int32)), 1)
 
         # Update pixmap by converting range, to QImage, and setting imageLabel
         fImageData = (self.npImgCont * 255).astype(np.uint8)
