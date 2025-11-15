@@ -49,11 +49,9 @@ class ParticleWindow(QMainWindow):
         # Initialize GUI
         self.initGUI()
 
-        self.particles = Particles(1, self.dim)
+        self.particles = Particles(200, self.dim)
 
         self.startTimer()
-        
-
 
     def startTimer(self):
         # Create timer for constant updates
@@ -107,6 +105,11 @@ class ParticleWindow(QMainWindow):
 
     def update(self):
 
+        # Multiply the whole image by a small scale 
+        # and subtract it from the current image
+        # to create a trail effect
+        self.npImgCont -= self.npImgCont * 0.005
+
         self.drawParticles()
 
         # Update pixmap by converting range, to QImage, and setting imageLabel
@@ -115,7 +118,7 @@ class ParticleWindow(QMainWindow):
         self.imageLabel.setPixmap(self.pixmap.scaled(self.width(), self.height(), Qt.KeepAspectRatio))
 
     def drawParticles(self):
-        
+
         # Add vector to position
         self.particles.positions[:, 0] += self.particles.vectors[:, 0] + np.random.rand(1) * 2 - 1
         self.particles.positions[:, 1] += self.particles.vectors[:, 1] + np.random.rand(1) * 2 - 1
