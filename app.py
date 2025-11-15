@@ -126,8 +126,8 @@ class ParticleWindow(QMainWindow):
         self.npImgCont[:, :] = 0
 
         # Add vector to position
-        self.positions_out[:, 0] += self.vectors_out[:, 0] * self.noiseMult
-        self.positions_out[:, 1] += self.vectors_out[:, 1] * self.noiseMult
+        self.positions_out[:, 0] += self.vectors_out[:, 0]
+        self.positions_out[:, 1] += self.vectors_out[:, 1]
 
         self.positions_out[:, 0] %= self.dim
         self.positions_out[:, 1] %= self.dim
@@ -157,3 +157,25 @@ window.show()
 
 app.exec()
 
+##########################
+# dt = st.dt * st.speed
+# st.vel += a * dt
+# st.pos += st.vel * dt
+
+# st.pos[:, 0] %= st.W
+# st.pos[:, 1] %= st.H
+
+# xi = st.xi
+# yi = st.yi
+
+# xi[:] = np.floor(st.pos[:, 0]).astype(np.int32)
+# xi %= st.W
+
+# yi[:] = np.floor(st.pos[:, 1]).astype(np.int32)
+# yi %= st.H
+
+# st.acc *= st.fade
+# xo = (xi[:, None] + st.splatOffsets[:, 0]) % st.W
+# yo = (yi[:, None] + st.splatOffsets[:, 1]) % st.H
+# w  = st.splatWeights[None, :]
+# np.add.at(st.acc, (yo, xo), w)
