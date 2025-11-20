@@ -38,7 +38,7 @@ class Particles():
         # Add angles to each position within the flow field
         for y in range(self.rows):
             for x in range(self.cols):
-                angle = (np.cos(x) + np.sin(y)) * 0.5
+                angle = (np.cos(x * 0.1) + np.sin(y *0.1)) * 0.9
                 self.flowField[y][x] = angle
 
     def addParticle(self):
@@ -152,11 +152,13 @@ class ParticleWindow(QMainWindow):
         # Multiply the whole image by a small scale 
         # and subtract it from the current image
         # to create a trail effect
-        self.npImgCont *= 0.985
+        self.npImgCont *= 0.9985
 
         self.particles.updateParticlesFlow()
 
         self.drawParticles()
+
+        self.npImgCont = np.clip(self.npImgCont, 0.000001, 1)
 
         # Update pixmap by converting range, to QImage, and setting imageLabel
         fImageData = (self.npImgCont * 255).astype(np.uint8)
