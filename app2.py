@@ -28,7 +28,7 @@ class Particles():
 
         self.vectors = self.vectors - 0.5
 
-    def addParticles(self):
+    def addParticle(self):
 
         newPosition = np.random.rand(1, 2)
 
@@ -41,6 +41,15 @@ class Particles():
         newVector = newVector - 0.5
 
         self.vectors = np.concatenate((self.vectors, newVector))
+
+    def updateParticles(self):
+
+        # Add vector to position
+        self.positions[:, 0] += self.vectors[:, 0] + np.random.rand(1) * 2 - 1
+        self.positions[:, 1] += self.vectors[:, 1] + np.random.rand(1) * 2 - 1
+
+    def getParticles(self):
+        return np.copy(self.positions)
 
 class ParticleWindow(QMainWindow):
     def __init__(self):
@@ -108,7 +117,9 @@ class ParticleWindow(QMainWindow):
         # Multiply the whole image by a small scale 
         # and subtract it from the current image
         # to create a trail effect
-        self.npImgCont -= self.npImgCont * 0.005
+        self.npImgCont *= 0.985
+
+        self.particles.updateParticles()
 
         self.drawParticles()
 
@@ -119,25 +130,26 @@ class ParticleWindow(QMainWindow):
 
     def drawParticles(self):
 
-        # Add vector to position
-        self.particles.positions[:, 0] += self.particles.vectors[:, 0] + np.random.rand(1) * 2 - 1
-        self.particles.positions[:, 1] += self.particles.vectors[:, 1] + np.random.rand(1) * 2 - 1
+        positions = self.particles.getParticles()
 
-        self.particles.positions[:, 0] %= self.dim
-        self.particles.positions[:, 1] %= self.dim
+        # Wrap screen
+        positions[:, 0] %= self.dim
+        positions[:, 1] %= self.dim
 
-        xi = np.zeros(self.particles.positions.shape[0], dtype=np.int32)
-        yi = np.zeros(self.particles.positions.shape[0], dtype=np.int32)
+        # Create two arrays to hold the x and y positions, respectively
+        xi = np.zeros(positions.shape[0], dtype=np.int32)
+        yi = np.zeros(positions.shape[0], dtype=np.int32)
 
-        xi[:] = np.floor(self.particles.positions[:, 0])
-        yi[:] = np.floor(self.particles.positions[:, 1])
+        # Make values integers for indexing
+        xi[:] = np.floor(positions[:, 0])
+        yi[:] = np.floor(positions[:, 1])
 
         # For each particle position, access that position in the image and set the value to 1
         np.add.at(self.npImgCont, (xi, yi), 1)
 
     def genParticle(self):
 
-        self.particles.addParticles()
+        self.particles.addParticle()
 
 
 app = QApplication([])
