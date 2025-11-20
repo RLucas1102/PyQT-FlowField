@@ -30,15 +30,15 @@ class Particles():
 
         # Create flow field
         self.cellSize = 20
-        rows = int(np.floor(self.dim / self.cellSize))
-        cols = int(np.floor(self.dim / self.cellSize))
+        self.rows = int(np.floor(self.dim / self.cellSize))
+        self.cols = int(np.floor(self.dim / self.cellSize))
 
-        self.flowField = np.zeros((rows, cols), dtype=np.float32)
+        self.flowField = np.zeros((self.rows, self.cols), dtype=np.float32)
 
         # Add angles to each position within the flow field
-        for y in range(rows):
-            for x in range(cols):
-                angle = np.cos(x) + np.sin(y)
+        for y in range(self.rows):
+            for x in range(self.cols):
+                angle = (np.cos(x) + np.sin(y)) * 0.5
                 self.flowField[y][x] = angle
 
     def addParticle(self):
@@ -69,22 +69,22 @@ class Particles():
         xInGrid[:] = np.floor(self.positions[:,0] / self.cellSize)
         yInGrid[:] = np.floor(self.positions[:,1] / self.cellSize)
 
-        xInGrid %= self.cellSize
-        yInGrid %= self.cellSize
+        xInGrid %= self.cols
+        yInGrid %= self.rows
 
         angles = np.zeros(self.positions.shape[0])
 
         for i in range(angles.shape[0]):
-            angles[i] = self.flowField[yInGrid[i]][xInGrid[i]]
+            angles[i] = self.flowField[xInGrid[i]][yInGrid[i]]
 
         velX = np.cos(angles)
-        vely = np.sin(angles)
+        velY = np.sin(angles)
 
-        self.positions[:, 0] += velX
-        self.positions[:, 1] += vely
+        self.positions[:, 0] += velY
+        self.positions[:, 1] += velX
 
     def getParticles(self):
-        return np.copy(self.positions)
+        return self.positions
 
 class ParticleWindow(QMainWindow):
     def __init__(self):
