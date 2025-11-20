@@ -28,6 +28,19 @@ class Particles():
 
         self.vectors = self.vectors - 0.5
 
+        # Create flow field
+        self.cellSize = 20
+        rows = int(np.floor(self.dim / self.cellSize))
+        cols = int(np.floor(self.dim / self.cellSize))
+
+        self.flowField = np.zeros((rows, cols), dtype=np.float32)
+
+        # Add angles to each position within the flow field
+        for y in range(rows):
+            for x in range(cols):
+                angle = np.cos(x) + np.sin(y)
+                self.flowField[y][x] = angle
+
     def addParticle(self):
 
         newPosition = np.random.rand(1, 2)
@@ -42,11 +55,33 @@ class Particles():
 
         self.vectors = np.concatenate((self.vectors, newVector))
 
-    def updateParticles(self):
+    def updateParticlesRand(self):
 
         # Add vector to position
         self.positions[:, 0] += self.vectors[:, 0] + np.random.rand(1) * 2 - 1
         self.positions[:, 1] += self.vectors[:, 1] + np.random.rand(1) * 2 - 1
+
+    def updateParticlesFlow(self):
+
+        xInGrid = np.zeros(self.positions.shape[0], dtype=np.int32)
+        yInGrid = np.zeros(self.positions.shape[0], dtype=np.int32)
+        
+        xInGrid[:] = np.floor(self.positions[:,0] / self.cellSize)
+        yInGrid[:] = np.floor(self.positions[:,1] / self.cellSize)
+
+        xInGrid %= self.cellSize
+        yInGrid %= self.cellSize
+
+        angles = np.zeros(self.positions.shape[0])
+
+        for i in range(angles.shape[0]):
+            angles[i] = self.flowField[yInGrid[i]][xInGrid[i]]
+
+        velX = np.cos(angles)
+        vely = np.sin(angles)
+
+        self.positions[:, 0] += velX
+        self.positions[:, 1] += vely
 
     def getParticles(self):
         return np.copy(self.positions)
@@ -119,7 +154,7 @@ class ParticleWindow(QMainWindow):
         # to create a trail effect
         self.npImgCont *= 0.985
 
-        self.particles.updateParticles()
+        self.particles.updateParticlesFlow()
 
         self.drawParticles()
 
