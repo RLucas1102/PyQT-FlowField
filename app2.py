@@ -26,6 +26,10 @@ class Particles():
         # Save original positions for updates
         self.origPositions = np.copy(self.positions)
 
+        # Initialize grid and flow field
+        self.rows = 0 
+        self.cols = 0
+
         self.flowField = None
 
         # These are values to change the way the flow field works
@@ -81,7 +85,41 @@ class Particles():
                 angle = (np.cos(x * self.zoom) + np.sin(y * self.zoom)) * self.curve
                 self.flowField[y][x] = angle
 
-    
+    def generatePerlinFlow(self):
+
+        # Perlin parameters
+        octaves = 6
+        persistence = 0.5
+        lacunarity = 2.0
+        seed = np.random.randint(0,100)
+
+        # Set new cell size
+        self.currCellSize = self.cellSize
+
+        # Create flow field
+        self.rows = int(np.floor(self.dim / self.currCellSize))
+        self.cols = int(np.floor(self.dim / self.currCellSize))
+
+        # This flow field grid will hold our angles for particles to access
+        self.flowField = np.zeros((self.rows, self.cols), dtype=np.float32)
+
+        # Add angles to each position within the flow field
+        for y in range(self.rows):
+            for x in range(self.cols):
+
+                scaledX = x * self.zoom
+                scaledY = y * self.zoom
+
+                # Apply "Improved Perlin" noise.
+                noiseVal = noise.pnoise2(scaledX, scaledY,
+                                        octaves=octaves, persistence=persistence, lacunarity=lacunarity,
+                                        repeatx=self.dim, repeaty=self.dim,
+                                        base=seed)
+                
+                angle = self.map(noiseVal, 0, 1, 0, np.pi * 2) * self.curve
+
+                self.flowField[y][x] = angle
+
     def updateParticlesFlow(self):
 
         xInGrid = np.zeros(self.positions.shape[0], dtype=np.int32)
@@ -118,6 +156,10 @@ class Particles():
 
     def setCellSize(self, cellsVal):
         self.cellSize = cellsVal
+
+    def map(self, value, inStart, inEnd, outStart, outEnd):
+        mappedVal = outStart + ((outEnd - outStart) / (inEnd - inStart)) * (value - inStart)
+        return mappedVal
 
 class ParticleWindow(QMainWindow):
     def __init__(self):
@@ -186,6 +228,7 @@ class ParticleWindow(QMainWindow):
         self.flowCombo = QComboBox()
         self.flowCombo.addItem("Random Flow")
         self.flowCombo.addItem("Symmetric Flow")
+        self.flowCombo.addItem("Perlin Flow")
         self.flowCombo.setCurrentIndex(1)
         self.flowCombo.currentIndexChanged.connect(self.genFlow)
         self.flowCombo.setEditable(False)
@@ -330,6 +373,8 @@ class ParticleWindow(QMainWindow):
                 self.particles.generateRandomFlow()
             case 1:
                 self.particles.generateSymmetricFlow()
+            case 2:
+                self.particles.generatePerlinFlow()
             case _:
                 print("Oops something went wrong!")
 
@@ -338,7 +383,7 @@ class ParticleWindow(QMainWindow):
         # Get value and convert to float
         zoomstr = self.zoomTextBox.text()
         zoomVal = float(zoomstr)
-        zoomVal = np.round(zoomVal, decimals=1)
+        zoomVal = np.round(zoomVal, decimals=4)
         self.zoomTextBox.setText(str(zoomVal))
 
         # Set respective value in particle system
@@ -379,7 +424,7 @@ class ParticleWindow(QMainWindow):
         # Get value and convert to float
         curveStr = self.curveTextBox.text()
         curveVal = float(curveStr)
-        curveVal = np.round(curveVal, decimals=1)
+        curveVal = np.round(curveVal, decimals=4)
         self.curveTextBox.setText(str(curveVal))
 
         # Set respective value in particle system
