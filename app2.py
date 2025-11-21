@@ -5,7 +5,7 @@ import noise
 
 from PySide6.QtWidgets import ( QApplication, QMainWindow, QLabel, QMenuBar, QMenu, 
                                 QFileDialog, QVBoxLayout, QComboBox, QWidget, QSlider, 
-                                QVBoxLayout, QPushButton, )
+                                QVBoxLayout, QPushButton, QHBoxLayout,)
 from PySide6.QtGui import QPixmap, QImage, QColor, QAction
 from PySide6.QtCore import Qt, Signal, QTimer
 
@@ -23,23 +23,18 @@ class Particles():
         # Keep in range 512, 512
         self.positions *= self.dim
 
-        # Create array of random particle vectors (keep [0,1])
-        self.vectors = np.random.rand(self.num_particles, 2)
+        # Create placeholder array for vectors and flow field
+        self.vectors = None
 
-        self.vectors = self.vectors - 0.5
+        self.flowField = None
 
-        # Create flow field
+        # These are values to change the way the flow field works
+        self.zoom = 0.1
+        self.curve = 3
         self.cellSize = 20
-        self.rows = int(np.floor(self.dim / self.cellSize))
-        self.cols = int(np.floor(self.dim / self.cellSize))
 
-        self.flowField = np.zeros((self.rows, self.cols), dtype=np.float32)
-
-        # Add angles to each position within the flow field
-        for y in range(self.rows):
-            for x in range(self.cols):
-                angle = (np.cos(x * 0.1) + np.sin(y *0.1)) * 0.9
-                self.flowField[y][x] = angle
+        # Initialize screen to a beautiful image
+        self.generateSymmetricFlow()
 
     def addParticle(self):
 
@@ -61,6 +56,29 @@ class Particles():
         self.positions[:, 0] += self.vectors[:, 0] + np.random.rand(1) * 2 - 1
         self.positions[:, 1] += self.vectors[:, 1] + np.random.rand(1) * 2 - 1
 
+    def generateRandomVectors(self):
+
+        # Create array of random particle vectors (keep [0,1])
+        self.vectors = np.random.rand(self.num_particles, 2)
+
+        self.vectors = self.vectors - 0.5
+    
+    def generateSymmetricFlow(self):
+
+        # Create flow field
+        self.rows = int(np.floor(self.dim / self.cellSize))
+        self.cols = int(np.floor(self.dim / self.cellSize))
+
+        # This flow field grid will hold our angles for particles to access
+        self.flowField = np.zeros((self.rows, self.cols), dtype=np.float32)
+
+        # Add angles to each position within the flow field
+        for y in range(self.rows):
+            for x in range(self.cols):
+                angle = (np.cos(x * self.zoom) + np.sin(y * self.zoom)) * self.curve
+                self.flowField[y][x] = angle
+
+    
     def updateParticlesFlow(self):
 
         xInGrid = np.zeros(self.positions.shape[0], dtype=np.int32)
@@ -112,7 +130,7 @@ class ParticleWindow(QMainWindow):
         # Window properties
         # --------------------------------------
         
-        self.dim = 512
+        self.dim = 1024
 
         # Create numpy array for image pixels
         self.npImgCont = np.zeros((self.dim, self.dim), dtype=np.float32)
@@ -123,7 +141,8 @@ class ParticleWindow(QMainWindow):
 
         # Layouts
         # --------------------------------------
-        mainLayout = QVBoxLayout()
+        mainLayout = QHBoxLayout()
+        toolLayout = QVBoxLayout()
 
         # Labels
         # --------------------------------------
@@ -135,13 +154,15 @@ class ParticleWindow(QMainWindow):
         # Buttons
         # --------------------------------------
         self.randButton = QPushButton()
-        self.randButton.setText("Randomize")
+        self.randButton.setText("Add Particle")
         self.randButton.clicked.connect(self.genParticle)
 
         # Build GUI
         # --------------------------------------
         mainLayout.addWidget(self.imageLabel)
-        mainLayout.addWidget(self.randButton)
+        toolLayout.addWidget(self.randButton)
+
+        mainLayout.addLayout(toolLayout)
 
         dummy = QWidget()
         dummy.setLayout(mainLayout)
@@ -158,7 +179,7 @@ class ParticleWindow(QMainWindow):
 
         self.drawParticles()
 
-        self.npImgCont = np.clip(self.npImgCont, 0.000001, 1)
+        self.npImgCont = np.clip(self.npImgCont, 0, 1)
 
         # Update pixmap by converting range, to QImage, and setting imageLabel
         fImageData = (self.npImgCont * 255).astype(np.uint8)
@@ -195,3 +216,18 @@ window = ParticleWindow()
 window.show()
 
 app.exec()
+
+
+# left =  (np.cos(x * zoom) + np.sin((y - 1) * zoom)) * 0.5
+# right =  (np.cos(x * zoom) + np.sin((y + 1) * zoom)) * 0.5 
+# top =  (np.cos((x + 1) * zoom) + np.sin(y * zoom)) * 0.5
+# bottom =  (np.cos((x - 1) * zoom) + np.sin(y * zoom)) * 0.5
+# #angle = (np.cos(x * 0.1) + np.sin(y * 0.1)) * 0.5
+# xgrad = right - left
+# ygrad = bottom - top
+# total_grad = np.array([xgrad, ygrad])
+# # a dot b = ||a||||b||cose(theta)
+# # theta = arccos(a dot b / (||a||||b||))
+# # want the angle with total_grad and the x axis
+# angle = np.arccos(total_grad.dot(np.array([1, 0]) / (np.sqrt(xgrad**2 + ygrad**2))))
+# self.flowField[y][x] = angle
