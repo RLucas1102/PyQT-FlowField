@@ -74,7 +74,7 @@ class Particles():
         # Add angles to each position within the flow field
         for y in range(self.rows):
             for x in range(self.cols):
-                angle = ((np.random.rand(1) - 0.5) * np.pi)
+                angle = (((np.random.rand(1) * self.zoom) - 0.5) * np.pi) * self.curve
                 self.flowField[y][x] = angle
     
     def generateSymmetricFlow(self):
@@ -128,6 +128,34 @@ class Particles():
                 
                 angle = self.map(noiseVal, 0, 1, 0, np.pi * 2) * self.curve
 
+                self.flowField[y][x] = angle
+
+    def generateRichardFlow(self):
+
+        # Set new cell size
+        self.currCellSize = self.cellSize
+
+        # Create flow field
+        self.rows = int(np.floor(self.dim / self.currCellSize))
+        self.cols = int(np.floor(self.dim / self.currCellSize))
+
+        # This flow field grid will hold our angles for particles to access
+        self.flowField = np.zeros((self.rows, self.cols), dtype=np.float32)
+
+        # Add angles to each position within the flow field
+        for y in range(self.rows):
+            for x in range(self.cols):
+                left =  (np.cos(x * self.zoom) + np.sin((y - 1) * self.zoom)) * self.curve
+                right =  (np.cos(x * self.zoom) + np.sin((y + 1) * self.zoom)) * self.curve
+                top =  (np.cos((x + 1) * self.zoom) + np.sin(y * self.zoom)) * self.curve
+                bottom =  (np.cos((x - 1) * self.zoom) + np.sin(y * self.zoom)) * self.curve
+                
+                xgrad = right - left
+                ygrad = bottom - top
+                total_grad = np.array([xgrad, ygrad])
+                
+                angle = np.arccos(total_grad.dot(np.array([1, 0]) / (np.sqrt(xgrad**2 + ygrad**2))))
+                
                 self.flowField[y][x] = angle
 
     def updateParticlesFlow(self):
@@ -244,7 +272,9 @@ class ParticleWindow(QMainWindow):
         self.flowCombo.addItem("Random Flow")
         self.flowCombo.addItem("Symmetric Flow")
         self.flowCombo.addItem("Perlin Flow")
+        self.flowCombo.addItem("Richard Flow")
         self.flowCombo.setCurrentIndex(1)
+        self.flowCombo.view().setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.flowCombo.currentIndexChanged.connect(self.genFlow)
         self.flowCombo.setEditable(False)
 
@@ -415,6 +445,8 @@ class ParticleWindow(QMainWindow):
                 self.particles.generateSymmetricFlow()
             case 2:
                 self.particles.generatePerlinFlow()
+            case 3:
+                self.particles.generateRichardFlow()
             case _:
                 print("Oops something went wrong!")
 
@@ -551,18 +583,3 @@ window = ParticleWindow()
 window.show()
 
 app.exec()
-
-
-# left =  (np.cos(x * zoom) + np.sin((y - 1) * zoom)) * 0.5
-# right =  (np.cos(x * zoom) + np.sin((y + 1) * zoom)) * 0.5 
-# top =  (np.cos((x + 1) * zoom) + np.sin(y * zoom)) * 0.5
-# bottom =  (np.cos((x - 1) * zoom) + np.sin(y * zoom)) * 0.5
-# #angle = (np.cos(x * 0.1) + np.sin(y * 0.1)) * 0.5
-# xgrad = right - left
-# ygrad = bottom - top
-# total_grad = np.array([xgrad, ygrad])
-# # a dot b = ||a||||b||cose(theta)
-# # theta = arccos(a dot b / (||a||||b||))
-# # want the angle with total_grad and the x axis
-# angle = np.arccos(total_grad.dot(np.array([1, 0]) / (np.sqrt(xgrad**2 + ygrad**2))))
-# self.flowField[y][x] = angle
