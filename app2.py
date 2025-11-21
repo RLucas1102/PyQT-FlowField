@@ -49,6 +49,16 @@ class Particles():
 
         self.positions = np.concatenate((self.positions, newPosition))
 
+    def genNewParticles(self, num):
+
+        self.num_particles = num
+
+        self.positions = np.random.rand(self.num_particles, 2)
+
+        self.positions *= self.dim
+
+        self.origPositions = np.copy(self.positions)
+
     def generateRandomFlow(self):
 
         # Set new cell size
@@ -223,6 +233,11 @@ class ParticleWindow(QMainWindow):
         self.cellLabel.setText("Cell size:")
         self.cellLabel.setMinimumSize(1, 1)
 
+        # Particle count label
+        self.particlesLabel = QLabel()
+        self.particlesLabel.setText("Number of particles:")
+        self.particlesLabel.setMinimumSize(1, 1)
+
         # Combo box
         # --------------------------------------
         self.flowCombo = QComboBox()
@@ -248,12 +263,16 @@ class ParticleWindow(QMainWindow):
         self.cellSizeTextBox = QLineEdit("20", parent=self)
         self.cellSizeTextBox.returnPressed.connect(self.setCells)
 
+        # Number of particles text bo
+        self.numParticlesTextBox = QLineEdit("200", parent=self)
+        self.numParticlesTextBox.returnPressed.connect(self.genNewParticles)
+
         # Buttons
         # --------------------------------------
         
         # Add particle button
         self.particleButton = QPushButton()
-        self.particleButton.setText("Add Particle")
+        self.particleButton.setText("Add 1 Particle")
         self.particleButton.clicked.connect(self.genParticle)
 
         # Zoom Plus/Minus button
@@ -306,6 +325,8 @@ class ParticleWindow(QMainWindow):
         toolLayout.addWidget(self.cellsizePlus)
         toolLayout.addWidget(self.cellsizeMinus)
 
+        toolLayout.addWidget(self.particlesLabel)
+        toolLayout.addWidget(self.numParticlesTextBox)
         toolLayout.addWidget(self.particleButton)
 
         mainLayout.addWidget(self.imageLabel)
@@ -356,7 +377,26 @@ class ParticleWindow(QMainWindow):
         np.add.at(self.npImgCont, (xi, yi), 1)
 
     def genParticle(self):
+        numParticlesStr = self.numParticlesTextBox.text()
+        numParticles = int(numParticlesStr)
+        numParticles += 1
+        self.numParticlesTextBox.setText(str(numParticles))
+
         self.particles.addParticle()
+
+    def genNewParticles(self):
+        
+        self.clearImage()
+
+        numParticlesStr = self.numParticlesTextBox.text()
+        numParticles = int(numParticlesStr)
+
+        if(numParticles > 2000):
+            numParticles = 2000
+
+        self.numParticlesTextBox.setText(str(numParticles))
+
+        self.particles.genNewParticles(numParticles)
 
     def clearImage(self):
         self.npImgCont[:,:] = 0
