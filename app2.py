@@ -130,6 +130,43 @@ class Particles():
 
                 self.flowField[y][x] = angle
 
+    def generateRockyFlow(self):
+
+        # Perlin parameters
+        octaves = 6
+        persistence = 0.5
+        lacunarity = 2.0
+        seed = np.random.randint(0,100)
+
+        # Set new cell size
+        self.currCellSize = self.cellSize
+
+        # Create flow field
+        self.rows = int(np.floor(self.dim / self.currCellSize))
+        self.cols = int(np.floor(self.dim / self.currCellSize))
+
+        # This flow field grid will hold our angles for particles to access
+        self.flowField = np.zeros((self.rows, self.cols), dtype=np.float32)
+
+        # Add angles to each position within the flow field
+        for y in range(self.rows):
+            for x in range(self.cols):
+
+                scaledX = x * self.zoom
+                scaledY = y * self.zoom
+
+                # Apply "Improved Perlin" noise.
+                noiseVal = noise.pnoise2(scaledX, scaledY,
+                                        octaves=octaves, persistence=persistence, lacunarity=lacunarity,
+                                        repeatx=self.dim, repeaty=self.dim,
+                                        base=seed)
+                
+                angle = self.map(noiseVal, 0, 1, 0, np.pi * 2) * self.curve
+
+                angle = np.round(angle, decimals=int(np.pi/4))
+
+                self.flowField[y][x] = angle
+
     def generateRichardFlow(self):
 
         # Set new cell size
@@ -206,7 +243,7 @@ class ParticleWindow(QMainWindow):
         # Initialize GUI
         self.initGUI()
 
-        self.particles = Particles(200, self.dim)
+        self.particles = Particles(2000, self.dim)
 
         self.startTimer()
 
@@ -273,6 +310,7 @@ class ParticleWindow(QMainWindow):
         self.flowCombo.addItem("Symmetric Flow")
         self.flowCombo.addItem("Perlin Flow")
         self.flowCombo.addItem("Richard Flow")
+        self.flowCombo.addItem("Rocky Flow")
         self.flowCombo.setCurrentIndex(1)
         self.flowCombo.view().setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.flowCombo.currentIndexChanged.connect(self.genFlow)
@@ -294,7 +332,7 @@ class ParticleWindow(QMainWindow):
         self.cellSizeTextBox.returnPressed.connect(self.setCells)
 
         # Number of particles text bo
-        self.numParticlesTextBox = QLineEdit("200", parent=self)
+        self.numParticlesTextBox = QLineEdit("2000", parent=self)
         self.numParticlesTextBox.returnPressed.connect(self.genNewParticles)
 
         # Buttons
@@ -447,6 +485,8 @@ class ParticleWindow(QMainWindow):
                 self.particles.generatePerlinFlow()
             case 3:
                 self.particles.generateRichardFlow()
+            case 4:
+                self.particles.generateRockyFlow()
             case _:
                 print("Oops something went wrong!")
 
